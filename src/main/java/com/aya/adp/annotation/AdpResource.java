@@ -13,21 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.aya.adp.module.factory;
+package com.aya.adp.annotation;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * @author name
+ * @author ls9527
  */
-public interface FactoryDefinition {
-    /**
-     * factory name
-     * @return
-     */
-    String getName();
+@Target({FIELD})
+@Retention(RUNTIME)
+public @interface AdpResource {
+    String group();
 
-    /**
-     * group name
-     * @return
-     */
-    String getGroup();
+    Class [] classes() default {};
 }

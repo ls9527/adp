@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  com.aya.adp.module.factory.FactoryPatternBeanFactoryPostProcessor
+  com.aya.adp.configuration.AdpConfiguration

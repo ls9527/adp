@@ -1,31 +1,38 @@
 package com.aya.adp.strategy;
 
-import com.aya.adp.annotation.AdpStrategy;
-import com.aya.adp.module.factory.DpFactories;
+import com.aya.adp.annotation.AdpAdapter;
+import com.aya.adp.annotation.AdpResource;
 import com.aya.adp.strategy.demo.Bird;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import javax.annotation.Resource;
-
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = StrategyStarter.class)
 public class StrategyTest {
 
-    @AdpStrategy(spel = {"#{type}"})
-    @Resource
+    @AdpAdapter(group = "bird")
     private Bird bird;
 
     @Test
-    public void sparrow() {
+    public void sparrowSayHello() {
         bird.sayHello("SPARROW");
     }
 
     @Test
-    public void woodpecker() {
+    public void woodpeckerSayHello() {
         bird.sayHello("WOODPECKER");
+    }
+
+    @Test
+    public void sparrowVipLevel() {
+        bird.vipLevel(1000);
+    }
+
+    @Test
+    public void woodpeckerVipLevel() {
+        bird.vipLevel(3000);
     }
 }

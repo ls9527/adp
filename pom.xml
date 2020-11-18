@@ -7,12 +7,15 @@
     <artifactId>adp</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>ADP</name>
+    <inceptionYear>2020</inceptionYear>
+
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.compilerVersion>1.8</maven.compiler.compilerVersion>
+        <owner>ls9527</owner>
     </properties>
 
     <dependencies>
@@ -23,5 +26,62 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>1.8</source> <!-- 源代码使用的JDK版本 -->
+                    <target>1.8</target> <!-- 需要生成的目标class文件的编译版本 -->
+                    <encoding>UTF-8</encoding><!-- 字符集编码 -->
+                    <parameters>true</parameters>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>package</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>3.0</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <quiet>true</quiet>
+                    <!--HEADER文件-->
+                    <header>src/main/resources/META-INF/LICENSE.txt</header>
+                    <includes>
+                        <include>src/main/java/**</include>
+                    </includes>
+                    <mapping>
+                        <java>SLASHSTAR_STYLE</java>
+                    </mapping>
+                    <properties>
+                        <owner>ls9527</owner>
+                        <email>364173778@qq.com</email>
+                    </properties>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 
 </project>
