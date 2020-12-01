@@ -19,8 +19,13 @@ package com.aya.adp.module.factory;
 /**
  * @author ls9527
  */
-public interface DpFactories {
+public interface DpFactories<T>  {
 
-   <T> T getBean(String name);
+   /**
+    * getBean
+    * @param beanName beanName
+    * @return the instance of bean
+    */
+   T getGroupBean(String beanName);
 
 }

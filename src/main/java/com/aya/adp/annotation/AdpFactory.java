@@ -32,11 +32,6 @@ public @interface AdpFactory {
      *
      * @return
      */
-    String name();
+    String[] name();
 
-    /**
-     * group info
-     * @return
-     */
-    String group();
 }

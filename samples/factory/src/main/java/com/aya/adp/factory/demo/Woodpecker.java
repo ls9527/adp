@@ -5,12 +5,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import static com.aya.adp.factory.demo.FactoryConstants.GROUP_BIRD;
 
 /**
  * @author ls9527
  */
-@AdpFactory(name = FactoryConstants.WOODPECKER, group =  GROUP_BIRD)
+@AdpFactory(name = FactoryConstants.WOODPECKER)
 @Service
 public class Woodpecker implements Bird {
 

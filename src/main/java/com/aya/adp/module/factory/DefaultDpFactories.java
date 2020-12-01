@@ -30,18 +30,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * @author ls9527
  */
-public class DefaultDpFactories implements DpFactories, InitializingBean, ApplicationContextAware {
+public class DefaultDpFactories<T> implements DpFactories, InitializingBean, ApplicationContextAware {
     private List<FactoryDefinitionInfo> beanDefinitionInfo;
 
     private Map<String, Map<String, Object>> beanMap = new ConcurrentHashMap<>();
+
+    private Map<Class<?>, Map<String, Object>> classMap = new ConcurrentHashMap<>();
 
     private ApplicationContext applicationContext;
 
     private AtomicBoolean changed = new AtomicBoolean(false);
 
     @Override
-    public <T> T getBean(String name){
-        return (T)beanMap.get(name);
+    public Map<String, Object> getGroupBean(String name) {
+        return beanMap.get(name);
+    }
+
+    public Map<String, Object> getGroupBeanByClass(Class<?> interfaceType) {
+        return classMap.get(interfaceType);
     }
 
     public void setBeanDefinitionInfo(List<FactoryDefinitionInfo> beanDefinitionInfo) {
@@ -61,11 +67,25 @@ public class DefaultDpFactories implements DpFactories, InitializingBean, Applic
                 String beanName = factoryDefinitionInfo.getBeanName();
                 if (factoryDefinitionInfo.isSingleton()) {
                     Object bean = applicationContext.getBean(beanName);
-                    FactoryDefinition factoryDefinition = factoryDefinitionInfo.getFactoryDefinition();
-                    beanMap.computeIfAbsent(factoryDefinition.getGroup(), k -> new ConcurrentHashMap<>())
-                            .put(factoryDefinition.getName(), bean);
+                    beanMap.computeIfAbsent(factoryDefinitionInfo.getGroup(), k -> new ConcurrentHashMap<>())
+                            .put(factoryDefinitionInfo.getType(), bean);
                 }
             }
+
+            for (FactoryDefinitionInfo factoryDefinitionInfo : beanDefinitionInfo) {
+                String beanName = factoryDefinitionInfo.getBeanName();
+                if (factoryDefinitionInfo.isSingleton()) {
+                    Object bean = applicationContext.getBean(beanName);
+                    Class<?>[] interfaces = bean.getClass().getInterfaces();
+                    if (interfaces.length > 0) {
+                        for (Class<?> anInterface : interfaces) {
+                            classMap.computeIfAbsent(anInterface, k -> new ConcurrentHashMap<>())
+                                    .put(factoryDefinitionInfo.getType(), bean);
+                        }
+                    }
+                }
+            }
+
         }
     }
 

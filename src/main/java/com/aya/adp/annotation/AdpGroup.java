@@ -15,19 +15,22 @@
  */
 package com.aya.adp.annotation;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * @author ls9527
  */
-@Target({FIELD})
-@Retention(RUNTIME)
-public @interface AdpAdapter {
-    String group();
+@Target({ElementType.TYPE, ElementType.FIELD})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface AdpGroup {
 
-    Class [] classes() default {};
+    /**
+     * the group name.
+     *
+     * @return the group name
+     */
+    String group();
 }

@@ -25,15 +25,18 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.InjectionMetadata;
 import org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author ls9527
@@ -84,41 +87,59 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
 
     private class AdpResourceElement extends InjectionMetadata.InjectedElement {
         private String groupName;
-        private Class[] checkClasses;
+        private Class<?> interfaceType;
 
         public AdpResourceElement(Field field, AnnotatedElement annotatedElement, PropertyDescriptor pd) {
             super(field, pd);
             AdpResource adpResource = annotatedElement.getAnnotation(AdpResource.class);
-            this.groupName = adpResource.group();
-            checkClasses = adpResource.classes();
+            if (!StringUtils.isEmpty(adpResource.group())) {
+                this.groupName = adpResource.group();
+            }
+            ParameterizedType genericType = (ParameterizedType) ((Field) member).getGenericType();
+            Type[] actualTypeArguments = genericType.getActualTypeArguments();
+            if (actualTypeArguments.length != 1) {
+                throw new InvalidPropertyException(this.member.getClass(), this.member.getName(), "property is not a type of class: " + this.member.getName());
+            }
+            interfaceType = (Class<?>) actualTypeArguments[0];
         }
 
         @Override
         protected Object getResourceToInject(Object target, String requestingBeanName) {
-            GroupDpFactories groupDpFactories = factoriesMap.get(this.groupName);
-            if (groupDpFactories != null) {
-                return groupDpFactories;
-            }
 
-            DpFactories dpFactories = beanFactory.getBean(DpFactories.class);
-            Map<String, Object> beanMap = dpFactories.getBean(this.groupName);
+            DefaultDpFactories<Map<String, Object>> dpFactories = beanFactory.getBean(DefaultDpFactories.class);
 
-            for (Object object : beanMap.values()) {
+            Map<String, Object> beanMap = getObjectMap(dpFactories);
+
+            checkInjectType(beanMap.values());
+
+            GroupDpFactories<Map<String, Object>> groupDpFactories = new GroupDpFactories<>();
+            groupDpFactories.setBeanMap(beanMap);
+            return groupDpFactories;
+        }
+
+        private void checkInjectType(Collection<Object> values) {
+            for (Object object : values) {
                 Class<?> beanClass = object.getClass();
-                for (Class<?> checkClass : checkClasses) {
-                    if (!checkClass.isAssignableFrom(beanClass)) {
-                        throw new InvalidPropertyException(beanClass, this.member.getName(), "property is not class:" + checkClass.getName());
-                    }
+                if (!interfaceType.isAssignableFrom(beanClass)) {
+                    throw new InvalidPropertyException(beanClass, this.member.getName(), "property is not class:" + beanClass.getName());
                 }
             }
+        }
 
-            groupDpFactories = new GroupDpFactories();
-            groupDpFactories.setBeanMap(beanMap);
-            factoriesMap.put(this.groupName, groupDpFactories);
-            return groupDpFactories;
+        private Map<String, Object> getObjectMap(DefaultDpFactories<Map<String, Object>> dpFactories) {
+            Map<String, Object> beanMap = null;
+            if (this.groupName != null) {
+                beanMap = dpFactories.getGroupBean(this.groupName);
+            }
+            if (beanMap == null) {
+                beanMap = dpFactories.getGroupBeanByClass(interfaceType);
+                if (beanMap == null) {
+                    throw new BeanCreationException("the bean type has not implementation object , interfaceType: " + this.interfaceType);
+                }
+            }
+            return beanMap;
         }
 
     }
 
-    private final Map<String, GroupDpFactories> factoriesMap = new ConcurrentHashMap<>();
 }

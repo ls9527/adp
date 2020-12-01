@@ -21,7 +21,8 @@ package com.aya.adp.module.factory;
 public class FactoryDefinitionInfo {
     private String beanName;
     private boolean isSingleton = true;
-    private FactoryDefinition factoryDefinition;
+    private String type;
+    private String group;
 
     public String getBeanName() {
         return beanName;
@@ -39,11 +40,19 @@ public class FactoryDefinitionInfo {
         isSingleton = singleton;
     }
 
-    public FactoryDefinition getFactoryDefinition() {
-        return factoryDefinition;
+    public String getType() {
+        return type;
     }
 
-    public void setFactoryDefinition(FactoryDefinition factoryDefinition) {
-        this.factoryDefinition = factoryDefinition;
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
     }
 }

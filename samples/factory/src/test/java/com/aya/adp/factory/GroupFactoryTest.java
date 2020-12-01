@@ -1,8 +1,8 @@
 package com.aya.adp.factory;
 
 import com.aya.adp.annotation.AdpResource;
-import com.aya.adp.factory.demo.Bird;
-import com.aya.adp.factory.demo.FactoryConstants;
+import com.aya.adp.factory.demogroup.GroupBird;
+import com.aya.adp.factory.demogroup.GroupFactoryConstants;
 import com.aya.adp.module.factory.DpFactories;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -12,20 +12,20 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = FactoryStarter.class)
-public class FactoryTest {
+public class GroupFactoryTest {
 
     @AdpResource
-    private DpFactories<Bird> dpFactories;
+    private DpFactories<GroupBird> dpFactories;
 
     @Test
     public void sparrow() {
-        Bird bird = dpFactories.getGroupBean(FactoryConstants.SPARROW);
+        GroupBird bird = dpFactories.getGroupBean(GroupFactoryConstants.SPARROW);
         bird.sayHello();
     }
 
     @Test
     public void woodpecker() {
-        Bird bird = dpFactories.getGroupBean(FactoryConstants.WOODPECKER);
+        GroupBird bird = dpFactories.getGroupBean(GroupFactoryConstants.WOODPECKER);
         bird.sayHello();
     }
 }

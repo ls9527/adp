@@ -1,7 +1,5 @@
 package com.aya.adp.strategy;
 
-import com.aya.adp.annotation.AdpAdapter;
-import com.aya.adp.annotation.AdpResource;
 import com.aya.adp.strategy.demo.Bird;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -13,7 +11,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest(classes = StrategyStarter.class)
 public class StrategyTest {
 
-    @AdpAdapter(group = "bird")
     private Bird bird;
 
     @Test
