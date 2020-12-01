@@ -31,15 +31,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author ls9527
  */
 public class DefaultDpFactories<T> implements DpFactories, InitializingBean, ApplicationContextAware {
+    private static final Logger logger = LoggerFactory.getLogger(DefaultDpFactories.class);
+    private final Map<String, Map<String, Object>> beanMap = new ConcurrentHashMap<>();
+    private final Map<Class<?>, Map<String, Object>> classMap = new ConcurrentHashMap<>();
+    private final AtomicBoolean changed = new AtomicBoolean(false);
     private List<FactoryDefinitionInfo> beanDefinitionInfo;
-
-    private Map<String, Map<String, Object>> beanMap = new ConcurrentHashMap<>();
-
-    private Map<Class<?>, Map<String, Object>> classMap = new ConcurrentHashMap<>();
-
     private ApplicationContext applicationContext;
-
-    private AtomicBoolean changed = new AtomicBoolean(false);
 
     @Override
     public Map<String, Object> getGroupBean(String name) {
@@ -53,8 +50,6 @@ public class DefaultDpFactories<T> implements DpFactories, InitializingBean, App
     public void setBeanDefinitionInfo(List<FactoryDefinitionInfo> beanDefinitionInfo) {
         this.beanDefinitionInfo = beanDefinitionInfo;
     }
-
-    private static final Logger logger = LoggerFactory.getLogger(DefaultDpFactories.class);
 
     @Override
     public void afterPropertiesSet() throws Exception {

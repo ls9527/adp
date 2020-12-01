@@ -1,5 +1,7 @@
 package com.aya.adp.factory.demogroup;
 
+import com.aya.adp.annotation.AdpFactory;
+import com.aya.adp.annotation.AdpGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -8,6 +10,8 @@ import org.springframework.stereotype.Service;
  * @author ls9527
  */
 
+@AdpGroup(group = "groupA")
+@AdpFactory(name = GroupFactoryConstants.SPARROW)
 @Service
 public class GroupSparrow implements GroupBird {
 
@@ -18,7 +22,4 @@ public class GroupSparrow implements GroupBird {
         logger.info("Sparrow say hello");
     }
 
-    public String getName() {
-        return GroupFactoryConstants.SPARROW;
-    }
 }

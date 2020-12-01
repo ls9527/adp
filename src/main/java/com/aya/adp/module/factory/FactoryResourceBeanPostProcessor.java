@@ -34,7 +34,6 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -44,6 +43,17 @@ import java.util.Map;
 public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanPostProcessor, BeanFactoryAware {
 
     private BeanFactory beanFactory;
+
+
+    @Override
+    public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) throws BeansException {
+        return null;
+    }
+
+    @Override
+    public boolean postProcessAfterInstantiation(Object bean, String beanName) throws BeansException {
+        return true;
+    }
 
     @Override
     public PropertyValues postProcessPropertyValues(PropertyValues pvs, PropertyDescriptor[] pds, Object bean, String beanName) throws BeansException {
@@ -68,7 +78,7 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
                     if (Modifier.isStatic(field.getModifiers())) {
                         throw new IllegalStateException("@AdpResource annotation is not supported on static fields");
                     }
-                    currElements.add(new AdpResourceElement(field, field, null));
+                    currElements.add(new AdpResourceElement(field, field));
                 }
             });
 
@@ -85,20 +95,36 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
         this.beanFactory = beanFactory;
     }
 
-    private class AdpResourceElement extends InjectionMetadata.InjectedElement {
-        private String groupName;
-        private Class<?> interfaceType;
+    @Override
+    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+        return bean;
+    }
 
-        public AdpResourceElement(Field field, AnnotatedElement annotatedElement, PropertyDescriptor pd) {
-            super(field, pd);
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        return bean;
+    }
+
+
+    private class AdpResourceElement extends InjectionMetadata.InjectedElement {
+        private final Class<?> interfaceType;
+        private String groupName;
+
+        public AdpResourceElement(Field field, AnnotatedElement annotatedElement) {
+            super(field, null);
             AdpResource adpResource = annotatedElement.getAnnotation(AdpResource.class);
             if (!StringUtils.isEmpty(adpResource.group())) {
                 this.groupName = adpResource.group();
             }
-            ParameterizedType genericType = (ParameterizedType) ((Field) member).getGenericType();
+
+            Type type = field.getGenericType();
+            if (!(type instanceof ParameterizedType)) {
+                throw new InvalidPropertyException(this.member.getClass(), this.member.getName(), "property is not a ParameterizedType, memberName:" + this.member.getName());
+            }
+            ParameterizedType genericType = (ParameterizedType) type;
             Type[] actualTypeArguments = genericType.getActualTypeArguments();
             if (actualTypeArguments.length != 1) {
-                throw new InvalidPropertyException(this.member.getClass(), this.member.getName(), "property is not a type of class: " + this.member.getName());
+                throw new InvalidPropertyException(this.member.getClass(), this.member.getName(), "property is not a type of class, memberName: " + this.member.getName());
             }
             interfaceType = (Class<?>) actualTypeArguments[0];
         }
@@ -110,20 +136,9 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
 
             Map<String, Object> beanMap = getObjectMap(dpFactories);
 
-            checkInjectType(beanMap.values());
-
             GroupDpFactories<Map<String, Object>> groupDpFactories = new GroupDpFactories<>();
             groupDpFactories.setBeanMap(beanMap);
             return groupDpFactories;
-        }
-
-        private void checkInjectType(Collection<Object> values) {
-            for (Object object : values) {
-                Class<?> beanClass = object.getClass();
-                if (!interfaceType.isAssignableFrom(beanClass)) {
-                    throw new InvalidPropertyException(beanClass, this.member.getName(), "property is not class:" + beanClass.getName());
-                }
-            }
         }
 
         private Map<String, Object> getObjectMap(DefaultDpFactories<Map<String, Object>> dpFactories) {
@@ -134,7 +149,8 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
             if (beanMap == null) {
                 beanMap = dpFactories.getGroupBeanByClass(interfaceType);
                 if (beanMap == null) {
-                    throw new BeanCreationException("the bean type has not implementation object , interfaceType: " + this.interfaceType);
+                    throw new BeanCreationException("the bean type has not implementation it , interfaceType: "
+                            + this.interfaceType);
                 }
             }
             return beanMap;
