@@ -15,8 +15,7 @@
  */
 package com.github.ls9527.adp.adp.configuration;
 
-import com.github.ls9527.adp.adp.module.factory.FactoryPatternBeanFactoryPostProcessor;
-import com.github.ls9527.adp.adp.module.factory.FactoryResourceBeanPostProcessor;
+import com.github.ls9527.adp.adp.factory.FactoryResourceBeanPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,12 +25,6 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class AdpConfiguration {
-
-    @ConditionalOnMissingBean
-    @Bean
-    public FactoryPatternBeanFactoryPostProcessor factoryPattern() {
-        return new FactoryPatternBeanFactoryPostProcessor();
-    }
 
     @ConditionalOnMissingBean
     @Bean

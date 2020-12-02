@@ -1,7 +1,7 @@
 package com.github.ls9527.adp.factory;
 
 import com.github.ls9527.adp.adp.annotation.AdpResource;
-import com.github.ls9527.adp.adp.module.factory.Factory;
+import com.github.ls9527.adp.adp.context.Factory;
 import com.github.ls9527.adp.factory.group.GroupBird;
 import com.github.ls9527.adp.factory.group.GroupFactoryConstants;
 import org.junit.Assert;
@@ -26,6 +26,11 @@ public class GroupFactoryTest {
      */
     @AdpResource
     private Factory<GroupBird> allFactory;
+    /**
+     * the cache of allFactory
+     */
+    @AdpResource
+    private Factory<GroupBird> sameAllFactory;
 
     @Test
     public void sparrow() {

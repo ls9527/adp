@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ls9527.adp.adp.module.factory;
+package com.github.ls9527.adp.adp.factory;
 
 import com.github.ls9527.adp.adp.annotation.AdpFactory;
 import com.github.ls9527.adp.adp.annotation.AdpResource;
@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author ls9527
@@ -74,6 +75,11 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
         }
         return pvs;
     }
+
+    /**
+     * cache for inject factory
+     */
+    private Map<CacheKey, /*Factory*/Object> injectCacheMap = new ConcurrentHashMap<>();
 
     private InjectionMetadata buildResourceMetadata(final Class<?> clazz) {
         List<InjectionMetadata.InjectedElement> elements = new ArrayList<>();
@@ -121,6 +127,13 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
         this.classLoader = classLoader;
     }
 
+    /**
+     * except singleton bean scope
+     *
+     * @param interfaceType      bean type
+     * @param requestingBeanName bean name
+     * @return lazy bean
+     */
     protected Object buildLazyResourceProxy(Class<?> interfaceType, final String requestingBeanName) {
         TargetSource ts = new TargetSource() {
             @Override
@@ -158,6 +171,7 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
         public AdpResourceElement(Field field) {
             super(field, null);
             AdpResource adpResource = field.getAnnotation(AdpResource.class);
+            String groupName = null;
             if (!StringUtils.isEmpty(adpResource.group())) {
                 this.groupName = adpResource.group();
             }
@@ -184,17 +198,25 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
 
         @Override
         protected Object getResourceToInject(Object target, String requestingBeanName) {
+            CacheKey cacheKey = buildCache(this.interfaceType, this.groupName);
+            Object factory = injectCacheMap.get(cacheKey);
+            if (factory == null) {
+                Map<String, Object> beanMap = determineObjectMap(applicationContext, this.groupName, this.interfaceType);
+                factory = GroupFactory.createFactory(beanMap);
+                injectCacheMap.put(cacheKey, factory);
+            }
+            return factory;
+        }
 
-            DefaultFactory factory = applicationContext.getBean(DefaultFactory.class.getName(), DefaultFactory.class);
-
-            Map<String, Object> beanMap = determineObjectMap(applicationContext, factory, this.groupName, this.interfaceType);
-
-            return GroupFactory.createFactory(beanMap);
+        private CacheKey buildCache(Class<?> interfaceType, String groupName) {
+            CacheKey cacheKey = new CacheKey();
+            cacheKey.groupName = groupName;
+            cacheKey.interfaceType = interfaceType;
+            return cacheKey;
         }
 
 
         private Map<String, Object> determineObjectMap(ApplicationContext applicationContext,
-                                                       DefaultFactory dpFactories,
                                                        String groupName,
                                                        Class<?> interfaceType) {
 
@@ -246,6 +268,37 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
             return isMatch;
         }
 
+    }
+
+    private class CacheKey {
+        private String groupName;
+        private Class<?> interfaceType;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            CacheKey cacheKey = (CacheKey) o;
+
+            if (this.groupName == null && cacheKey.groupName == null) {
+                // ignore null value for groupName
+            } else if (!groupName.equals(cacheKey.groupName)) {
+                return false;
+            }
+            return interfaceType.equals(cacheKey.interfaceType);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = groupName != null ? groupName.hashCode() : 0;
+            result = 31 * result + (interfaceType != null ? interfaceType.hashCode() : 0);
+            return result;
+        }
     }
 
 }

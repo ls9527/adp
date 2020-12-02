@@ -1,7 +1,7 @@
 package com.github.ls9527.adp.factory;
 
 import com.github.ls9527.adp.adp.annotation.AdpResource;
-import com.github.ls9527.adp.adp.module.factory.Factory;
+import com.github.ls9527.adp.adp.context.Factory;
 import com.github.ls9527.adp.factory.demo.Bird;
 import com.github.ls9527.adp.factory.demo.FactoryConstants;
 import org.junit.Test;

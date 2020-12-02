@@ -13,20 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ls9527.adp.adp.module.factory;
+package com.github.ls9527.adp.adp.factory;
 
+import com.github.ls9527.adp.adp.context.Factory;
+
+import java.util.Map;
 
 /**
  * @author ls9527
  */
-public interface Factory<T> {
+class GroupFactory<T> implements Factory<T> {
+    private Map<String, Object> beanMap;
 
-    /**
-     * getBean
-     *
-     * @param beanName beanName
-     * @return the instance of bean
-     */
-    T getBean(String beanName);
+    private GroupFactory(Map<String, Object> beanMap) {
+        this.beanMap = beanMap;
+    }
+
+    static <S> GroupFactory<S> createFactory(Map<String, Object> beanMap) {
+        return new GroupFactory<>(beanMap);
+    }
+
+    @Override
+    public T getBean(String name) {
+        return (T) beanMap.get(name);
+    }
 
 }
