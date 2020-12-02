@@ -15,7 +15,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.aya</groupId>
+            <groupId>com.github.ls9527</groupId>
             <artifactId>adp</artifactId>
         </dependency>
 

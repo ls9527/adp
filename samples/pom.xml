@@ -20,7 +20,7 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.aya</groupId>
+                <groupId>com.github.ls9527</groupId>
                 <artifactId>adp</artifactId>
                 <version>0.0.1-SNAPSHOT</version>
             </dependency>
