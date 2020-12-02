@@ -16,7 +16,6 @@
 package com.aya.adp.module.factory;
 
 import com.aya.adp.annotation.AdpFactory;
-import com.aya.adp.annotation.AdpGroup;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -25,6 +24,7 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanNameGenerator;
 import org.springframework.beans.factory.support.DefaultBeanNameGenerator;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,15 +48,15 @@ public class FactoryPatternBeanFactoryPostProcessor implements BeanFactoryPostPr
             if (adpFactory == null) {
                 continue;
             }
-            String group = getGroup(beanFactory, beanName);
+            String group = getGroup(adpFactory.group());
             BeanDefinition beanDefinition = beanFactory.getBeanDefinition(beanName);
-            String[] names = adpFactory.name();
+            String[] beanTypes = adpFactory.name();
 
-            for (String name : names) {
+            for (String beanType : beanTypes) {
                 FactoryDefinitionInfo factoryDefinitionInfo = buildFactoryDefinitionInfo(beanName,
                         beanDefinition.isSingleton(),
                         group,
-                        name);
+                        beanType);
                 factoryDefinitionInfoList.add(factoryDefinitionInfo);
             }
         }
@@ -64,24 +64,20 @@ public class FactoryPatternBeanFactoryPostProcessor implements BeanFactoryPostPr
         registerDefinition(beanDefinitionRegistry, factoryDefinitionInfoList);
     }
 
-    private String getGroup(ConfigurableListableBeanFactory beanFactory, String beanName) {
+    private String getGroup(String adpGroup) {
         String group = null;
-        AdpGroup adpGroup = beanFactory.findAnnotationOnBean(beanName, AdpGroup.class);
-        if (adpGroup != null) {
-            group = adpGroup.group();
+        if (StringUtils.isEmpty(adpGroup)) {
+            group = adpGroup;
         }
-        if (group == null) {
+        if (StringUtils.isEmpty(group)) {
             group = "default";
         }
         return group;
     }
 
     private void registerDefinition(BeanDefinitionRegistry beanDefinitionRegistry, List<FactoryDefinitionInfo> factoryDefinitionInfoList) {
-        BeanDefinition groupBeanDefinition = getGroupBeanDefinition();
-        BeanNameGenerator generator = new DefaultBeanNameGenerator();
-
-        String beanName = generator.generateBeanName(groupBeanDefinition, beanDefinitionRegistry);
-        groupBeanDefinition.getPropertyValues().addPropertyValue("beanDefinitionInfo", factoryDefinitionInfoList);
+        BeanDefinition groupBeanDefinition = getGroupBeanDefinition(factoryDefinitionInfoList);
+        String beanName = DefaultFactory.class.getName();
         beanDefinitionRegistry.registerBeanDefinition(beanName, groupBeanDefinition);
     }
 
@@ -97,9 +93,11 @@ public class FactoryPatternBeanFactoryPostProcessor implements BeanFactoryPostPr
         return factoryDefinitionInfo;
     }
 
-    private BeanDefinition getGroupBeanDefinition() {
+    private BeanDefinition getGroupBeanDefinition(List<FactoryDefinitionInfo> factoryDefinitionInfoList) {
         BeanDefinition groupBeanDefinition = new GenericBeanDefinition();
-        groupBeanDefinition.setBeanClassName(DefaultDpFactories.class.getName());
+        groupBeanDefinition.setBeanClassName(DefaultFactory.class.getName());
+        groupBeanDefinition.getPropertyValues()
+                .addPropertyValue("beanDefinitionInfo", factoryDefinitionInfoList);
         return groupBeanDefinition;
     }
 

@@ -1,10 +1,12 @@
-package com.aya.adp.strategy.demo;
+package com.aya.adp.factory.group;
 
 /**
  * @author ls9527
  */
-public class FactoryConstants {
+public class GroupFactoryConstants {
     public static final String SPARROW = "SPARROW";
 
     public static final String WOODPECKER = "WOODPECKER";
+
+    public static final String GROUP_BIRD = "bird";
 }

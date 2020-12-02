@@ -1,9 +1,9 @@
-package com.aya.adp.factory.demogroup;
+package com.aya.adp.factory.prototype;
 
 /**
  * @author ls9527
  */
-public class GroupFactoryConstants {
+public class PrototypeConstants {
     public static final String SPARROW = "SPARROW";
 
     public static final String WOODPECKER = "WOODPECKER";

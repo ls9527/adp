@@ -3,7 +3,7 @@ package com.aya.adp.factory;
 import com.aya.adp.annotation.AdpResource;
 import com.aya.adp.factory.demo.Bird;
 import com.aya.adp.factory.demo.FactoryConstants;
-import com.aya.adp.module.factory.DpFactories;
+import com.aya.adp.module.factory.Factory;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,17 +21,17 @@ public class FactoryTest {
     private List<Bird> birdList;
 
     @AdpResource
-    private DpFactories<Bird> dpFactories;
+    private Factory<Bird> factory;
 
     @Test
     public void sparrow() {
-        Bird bird = dpFactories.getGroupBean(FactoryConstants.SPARROW);
+        Bird bird = factory.getBean(FactoryConstants.SPARROW);
         bird.sayHello();
     }
 
     @Test
     public void woodpecker() {
-        Bird bird = dpFactories.getGroupBean(FactoryConstants.WOODPECKER);
+        Bird bird = factory.getBean(FactoryConstants.WOODPECKER);
         bird.sayHello();
     }
 }

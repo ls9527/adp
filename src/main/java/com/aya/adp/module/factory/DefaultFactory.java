@@ -18,9 +18,9 @@ package com.aya.adp.module.factory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 
 import java.util.List;
 import java.util.Map;
@@ -30,16 +30,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * @author ls9527
  */
-public class DefaultDpFactories<T> implements DpFactories, InitializingBean, ApplicationContextAware {
-    private static final Logger logger = LoggerFactory.getLogger(DefaultDpFactories.class);
+public class DefaultFactory implements Factory<Map<String, Object>>, InitializingBean, BeanFactoryAware {
+    private static final Logger logger = LoggerFactory.getLogger(DefaultFactory.class);
     private final Map<String, Map<String, Object>> beanMap = new ConcurrentHashMap<>();
     private final Map<Class<?>, Map<String, Object>> classMap = new ConcurrentHashMap<>();
     private final AtomicBoolean changed = new AtomicBoolean(false);
     private List<FactoryDefinitionInfo> beanDefinitionInfo;
-    private ApplicationContext applicationContext;
+    private BeanFactory beanFactory;
 
     @Override
-    public Map<String, Object> getGroupBean(String name) {
+    public Map<String, Object> getBean(String name) {
         return beanMap.get(name);
     }
 
@@ -61,8 +61,8 @@ public class DefaultDpFactories<T> implements DpFactories, InitializingBean, App
             for (FactoryDefinitionInfo factoryDefinitionInfo : beanDefinitionInfo) {
                 String beanName = factoryDefinitionInfo.getBeanName();
                 if (factoryDefinitionInfo.isSingleton()) {
-                    Object bean = applicationContext.getBean(beanName);
-                    beanMap.computeIfAbsent(factoryDefinitionInfo.getGroup(), k -> new ConcurrentHashMap<>())
+                    Object bean = beanFactory.getBean(beanName);
+                    beanMap.computeIfAbsent(factoryDefinitionInfo.getGroup(), k -> new ConcurrentHashMap<>(16))
                             .put(factoryDefinitionInfo.getType(), bean);
                 }
             }
@@ -70,14 +70,22 @@ public class DefaultDpFactories<T> implements DpFactories, InitializingBean, App
             for (FactoryDefinitionInfo factoryDefinitionInfo : beanDefinitionInfo) {
                 String beanName = factoryDefinitionInfo.getBeanName();
                 if (factoryDefinitionInfo.isSingleton()) {
-                    Object bean = applicationContext.getBean(beanName);
-                    Class<?>[] interfaces = bean.getClass().getInterfaces();
-                    if (interfaces.length > 0) {
-                        for (Class<?> anInterface : interfaces) {
-                            classMap.computeIfAbsent(anInterface, k -> new ConcurrentHashMap<>())
-                                    .put(factoryDefinitionInfo.getType(), bean);
+                    Object bean = beanFactory.getBean(beanName);
+                    Class<?> currentClass = bean.getClass();
+                    while (!currentClass.equals(Object.class)) {
+                        Class<?>[] interfaces = currentClass.getInterfaces();
+                        if (interfaces.length > 0) {
+                            for (Class<?> anInterface : interfaces) {
+                                // ignore serializable
+                                if (anInterface.getMethods().length > 0) {
+                                    classMap.computeIfAbsent(anInterface, k -> new ConcurrentHashMap<>(16))
+                                            .put(factoryDefinitionInfo.getType(), bean);
+                                }
+                            }
                         }
+                        currentClass = currentClass.getSuperclass();
                     }
+
                 }
             }
 
@@ -85,7 +93,7 @@ public class DefaultDpFactories<T> implements DpFactories, InitializingBean, App
     }
 
     @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
+    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+        this.beanFactory = beanFactory;
     }
 }

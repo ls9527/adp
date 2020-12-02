@@ -1,7 +1,6 @@
-package com.aya.adp.factory.demogroup;
+package com.aya.adp.factory.group;
 
 import com.aya.adp.annotation.AdpFactory;
-import com.aya.adp.annotation.AdpGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -10,8 +9,7 @@ import org.springframework.stereotype.Service;
 /**
  * @author ls9527
  */
-@AdpGroup(group = "groupB")
-@AdpFactory(name = GroupFactoryConstants.WOODPECKER)
+@AdpFactory(name = GroupFactoryConstants.WOODPECKER, group = "groupB")
 @Service
 public class GroupWoodpecker implements GroupBird {
 

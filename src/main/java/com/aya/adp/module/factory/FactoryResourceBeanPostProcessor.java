@@ -15,34 +15,44 @@
  */
 package com.aya.adp.module.factory;
 
+import com.aya.adp.annotation.AdpFactory;
 import com.aya.adp.annotation.AdpResource;
+import org.springframework.aop.TargetSource;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.InvalidPropertyException;
 import org.springframework.beans.PropertyValues;
+import org.springframework.beans.factory.BeanClassLoaderAware;
 import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.InjectionMetadata;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.beans.factory.config.InstantiationAwareBeanPostProcessor;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.beans.PropertyDescriptor;
-import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * @author ls9527
  */
-public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanPostProcessor, BeanFactoryAware {
+public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanPostProcessor, ApplicationContextAware,
+        BeanClassLoaderAware {
 
-    private BeanFactory beanFactory;
+    private ApplicationContext applicationContext;
+    private ClassLoader classLoader;
 
 
     @Override
@@ -78,7 +88,7 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
                     if (Modifier.isStatic(field.getModifiers())) {
                         throw new IllegalStateException("@AdpResource annotation is not supported on static fields");
                     }
-                    currElements.add(new AdpResourceElement(field, field));
+                    currElements.add(new AdpResourceElement(field));
                 }
             });
 
@@ -90,10 +100,6 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
         return new InjectionMetadata(clazz, elements);
     }
 
-    @Override
-    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
-        this.beanFactory = beanFactory;
-    }
 
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
@@ -105,57 +111,143 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
         return bean;
     }
 
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
+    }
+
+    @Override
+    public void setBeanClassLoader(ClassLoader classLoader) {
+
+        this.classLoader = classLoader;
+    }
+
 
     private class AdpResourceElement extends InjectionMetadata.InjectedElement {
         private final Class<?> interfaceType;
         private String groupName;
 
-        public AdpResourceElement(Field field, AnnotatedElement annotatedElement) {
+        public AdpResourceElement(Field field) {
             super(field, null);
-            AdpResource adpResource = annotatedElement.getAnnotation(AdpResource.class);
+            AdpResource adpResource = field.getAnnotation(AdpResource.class);
             if (!StringUtils.isEmpty(adpResource.group())) {
                 this.groupName = adpResource.group();
             }
 
             Type type = field.getGenericType();
             if (!(type instanceof ParameterizedType)) {
-                throw new InvalidPropertyException(this.member.getClass(), this.member.getName(), "property is not a ParameterizedType, memberName:" + this.member.getName());
+                throw new InvalidPropertyException(this.member.getClass(),
+                        this.member.getName(),
+                        "property is not a ParameterizedType, memberName:" + this.member.getName());
             }
             ParameterizedType genericType = (ParameterizedType) type;
             Type[] actualTypeArguments = genericType.getActualTypeArguments();
             if (actualTypeArguments.length != 1) {
-                throw new InvalidPropertyException(this.member.getClass(), this.member.getName(), "property is not a type of class, memberName: " + this.member.getName());
+                throw new InvalidPropertyException(this.member.getClass(),
+                        this.member.getName(),
+                        "property is not a type of class, memberName: " + this.member.getName());
             }
             interfaceType = (Class<?>) actualTypeArguments[0];
+            if (!interfaceType.isInterface()) {
+                throw new BeanCreationException("the bean type is not interface, class type : "
+                        + interfaceType);
+            }
         }
 
         @Override
         protected Object getResourceToInject(Object target, String requestingBeanName) {
 
-            DefaultDpFactories<Map<String, Object>> dpFactories = beanFactory.getBean(DefaultDpFactories.class);
+            DefaultFactory factory = applicationContext.getBean(DefaultFactory.class.getName(), DefaultFactory.class);
 
-            Map<String, Object> beanMap = getObjectMap(dpFactories);
+            Map<String, Object> beanMap = determineObjectMap(applicationContext, factory, this.groupName, this.interfaceType);
 
-            GroupDpFactories<Map<String, Object>> groupDpFactories = new GroupDpFactories<>();
-            groupDpFactories.setBeanMap(beanMap);
-            return groupDpFactories;
+            return GroupFactory.createFactory(beanMap);
         }
 
-        private Map<String, Object> getObjectMap(DefaultDpFactories<Map<String, Object>> dpFactories) {
-            Map<String, Object> beanMap = null;
-            if (this.groupName != null) {
-                beanMap = dpFactories.getGroupBean(this.groupName);
+
+        private Map<String, Object> determineObjectMap(ApplicationContext applicationContext,
+                                                       DefaultFactory dpFactories,
+                                                       String groupName,
+                                                       Class<?> interfaceType) {
+
+            String[] beanNamesForType = applicationContext.getBeanNamesForType(interfaceType);
+            if (beanNamesForType.length == 0) {
+                throw new InvalidPropertyException(this.member.getClass(),
+                        this.member.getName(),
+                        "the bean type has not implementation it , interfaceType: " + interfaceType);
             }
-            if (beanMap == null) {
-                beanMap = dpFactories.getGroupBeanByClass(interfaceType);
-                if (beanMap == null) {
-                    throw new BeanCreationException("the bean type has not implementation it , interfaceType: "
-                            + this.interfaceType);
+            Map<String, Object> objectMap = new HashMap<>(16);
+            BeanDefinitionRegistry beanDefinitionRegistry = (BeanDefinitionRegistry) applicationContext;
+            for (String beanName : beanNamesForType) {
+                BeanDefinition beanDefinition = beanDefinitionRegistry.getBeanDefinition(beanName);
+
+                Class<?> beanClass = applicationContext.getType(beanName);
+                AdpFactory factory = AnnotationUtils.findAnnotation(beanClass, AdpFactory.class);
+                if (factory == null) {
+                    continue;
+                }
+                String group = factory.group();
+                Object bean = null;
+                if (beanDefinition.isSingleton()) {
+                    bean = applicationContext.getBean(beanName);
+                } else {
+                    // prototype, request ,session or other scope
+                    bean = buildLazyResourceProxy(interfaceType, beanName);
+                }
+                Boolean isMatch = matchGroup(groupName, group);
+                if (isMatch) {
+                    for (String name : factory.name()) {
+                        objectMap.put(name, bean);
+                    }
                 }
             }
-            return beanMap;
+            return objectMap;
         }
 
+        private Boolean matchGroup(String groupName, String group) {
+            Boolean isMatch = null;
+            if (groupName == null) {
+                isMatch = true;
+            }
+            if (isMatch == null && !StringUtils.isEmpty(groupName) && groupName.equals(group)) {
+                isMatch = true;
+            }
+            if (isMatch == null) {
+                isMatch = false;
+            }
+            return isMatch;
+        }
+
+    }
+
+    protected Object buildLazyResourceProxy(Class<?> interfaceType, final String requestingBeanName) {
+        TargetSource ts = new TargetSource() {
+            @Override
+            public Class<?> getTargetClass() {
+                return interfaceType;
+            }
+
+            @Override
+            public boolean isStatic() {
+                return false;
+            }
+
+            @Override
+            public Object getTarget() {
+                return applicationContext.getBean(requestingBeanName, interfaceType);
+            }
+
+            @Override
+            public void releaseTarget(Object target) {
+            }
+        };
+        ProxyFactory pf = new ProxyFactory();
+        pf.setTargetSource(ts);
+        if (interfaceType.isInterface()) {
+            pf.addInterface(interfaceType);
+        }
+
+        return pf.getProxy(this.classLoader);
     }
 
 }

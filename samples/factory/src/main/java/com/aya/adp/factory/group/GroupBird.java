@@ -1,4 +1,4 @@
-package com.aya.adp.factory.demogroup;
+package com.aya.adp.factory.group;
 
 /**
  * @author ls9527

@@ -13,24 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.aya.adp.annotation;
+package com.aya.adp.module.factory;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author ls9527
  */
-@Target({ElementType.TYPE, ElementType.FIELD})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface AdpGroup {
+class GroupFactory<T> implements Factory<T> {
+    private Map<String, Object> beanMap = new ConcurrentHashMap<>();
 
-    /**
-     * the group name.
-     *
-     * @return the group name
-     */
-    String group();
+    @Override
+    public T getBean(String name) {
+        return (T) beanMap.get(name);
+    }
+
+
+    public void setBeanMap(Map<String, Object> beanMap) {
+        this.beanMap = beanMap;
+    }
+
+    private GroupFactory(Map<String, Object> beanMap) {
+        this.beanMap = beanMap;
+    }
+
+    static <S> GroupFactory<S> createFactory(Map<String, Object> beanMap){
+        return new GroupFactory<>(beanMap);
+    }
 }

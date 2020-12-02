@@ -1,9 +1,9 @@
 package com.aya.adp.factory;
 
 import com.aya.adp.annotation.AdpResource;
-import com.aya.adp.factory.demogroup.GroupBird;
-import com.aya.adp.factory.demogroup.GroupFactoryConstants;
-import com.aya.adp.module.factory.DpFactories;
+import com.aya.adp.factory.group.GroupBird;
+import com.aya.adp.factory.group.GroupFactoryConstants;
+import com.aya.adp.module.factory.Factory;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,50 +16,50 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class GroupFactoryTest {
 
     @AdpResource(group = "groupA")
-    private DpFactories<GroupBird> groupABirdDpFactories;
+    private Factory<GroupBird> groupABirdFactory;
 
     @AdpResource(group = "groupB")
-    private DpFactories<GroupBird> groupBBirdDpFactories;
+    private Factory<GroupBird> groupBBirdFactory;
 
     /**
      * groupAll
      */
     @AdpResource
-    private DpFactories<GroupBird> allDpFactories;
+    private Factory<GroupBird> allFactory;
 
     @Test
     public void sparrow() {
-        GroupBird bird = groupABirdDpFactories.getGroupBean(GroupFactoryConstants.SPARROW);
+        GroupBird bird = groupABirdFactory.getBean(GroupFactoryConstants.SPARROW);
         bird.sayHello();
     }
 
 
     @Test
     public void sparrowNotExists() {
-        GroupBird bird = groupBBirdDpFactories.getGroupBean(GroupFactoryConstants.SPARROW);
+        GroupBird bird = groupBBirdFactory.getBean(GroupFactoryConstants.SPARROW);
         Assert.assertNull(bird);
     }
 
 
     @Test
     public void woodpecker() {
-        GroupBird bird = groupBBirdDpFactories.getGroupBean(GroupFactoryConstants.WOODPECKER);
+        GroupBird bird = groupBBirdFactory.getBean(GroupFactoryConstants.WOODPECKER);
         bird.sayHello();
     }
 
 
     @Test
     public void woodpeckerNotExists() {
-        GroupBird bird = groupABirdDpFactories.getGroupBean(GroupFactoryConstants.WOODPECKER);
+        GroupBird bird = groupABirdFactory.getBean(GroupFactoryConstants.WOODPECKER);
         Assert.assertNull(bird);
     }
 
     @Test
     public void allExists() {
-        GroupBird woodpecker = allDpFactories.getGroupBean(GroupFactoryConstants.WOODPECKER);
+        GroupBird woodpecker = allFactory.getBean(GroupFactoryConstants.WOODPECKER);
         Assert.assertNotNull(woodpecker);
 
-        GroupBird sparrow = allDpFactories.getGroupBean(GroupFactoryConstants.SPARROW);
+        GroupBird sparrow = allFactory.getBean(GroupFactoryConstants.SPARROW);
         Assert.assertNotNull(sparrow);
     }
 }

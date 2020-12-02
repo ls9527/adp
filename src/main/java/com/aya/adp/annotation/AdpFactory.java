@@ -30,8 +30,10 @@ public @interface AdpFactory {
     /**
      * factory name
      *
-     * @return
+     * @return name
      */
     String[] name();
+
+    String group() default "";
 
 }
