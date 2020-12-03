@@ -13,29 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ls9527.adp.adp.factory;
+package com.github.ls9527.adp.strategy;
 
-import com.github.ls9527.adp.adp.context.Factory;
-
-import java.util.Map;
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * @author ls9527
  */
-class GroupFactory<T> implements Factory<T> {
-    private Map<String, Object> beanMap;
+public interface MethodHandler {
+    /**
+     *
+     * @param args
+     * @return
+     * @throws InvocationTargetException
+     * @throws IllegalAccessException
+     */
+    public Object invoke(Object[] args) throws InvocationTargetException, IllegalAccessException;
 
-    private GroupFactory(Map<String, Object> beanMap) {
-        this.beanMap = beanMap;
-    }
-
-    static <S> GroupFactory<S> createFactory(Map<String, Object> beanMap) {
-        return new GroupFactory<>(beanMap);
-    }
-
-    @Override
-    public T getBean(String name) {
-        return (T) beanMap.get(name);
-    }
-
+    boolean match(Object[] args);
 }

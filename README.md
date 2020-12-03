@@ -37,7 +37,7 @@ public class FactoryConstants {
 test:
 ```java
 public class FactoryTest {
-    @AdpResource
+    @FactoryResource
     private Factory<Bird> factory;
 
     @Test

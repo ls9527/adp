@@ -1,9 +1,9 @@
-package com.github.ls9527.adp.factory;
+package com.github.ls9527.adp.strategy;
 
 import com.github.ls9527.adp.annotation.FactoryResource;
 import com.github.ls9527.adp.context.Factory;
-import com.github.ls9527.adp.factory.group.GroupFactoryConstants;
-import com.github.ls9527.adp.factory.prototype.PrototypeBird;
+import com.github.ls9527.adp.strategy.group.GroupFactoryConstants;
+import com.github.ls9527.adp.strategy.prototype.PrototypeBird;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,7 +11,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = FactoryStarter.class)
+@SpringBootTest(classes = StrategyStarter.class)
 public class PrototypeFactoryTest {
 
     /**

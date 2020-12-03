@@ -13,22 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ls9527.adp.adp.configuration;
+package com.github.ls9527.adp.annotation;
 
-import com.github.ls9527.adp.adp.factory.FactoryResourceBeanPostProcessor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  * @author ls9527
  */
-@Configuration
-public class AdpConfiguration {
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface AdpStrategy {
 
-    @ConditionalOnMissingBean
-    @Bean
-    public FactoryResourceBeanPostProcessor factoryResourceBeanPostProcessor() {
-        return new FactoryResourceBeanPostProcessor();
-    }
+    /**
+     * condition expression
+     *
+     * @return condition
+     */
+    String condition();
+
+    /**
+     * order
+     * @return order number
+     */
+    int order() default -1;
+
+
 }

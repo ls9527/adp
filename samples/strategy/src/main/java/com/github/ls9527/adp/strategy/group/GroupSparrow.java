@@ -1,6 +1,4 @@
-package com.github.ls9527.adp.factory.demo;
-
-
+package com.github.ls9527.adp.strategy.group;
 
 import com.github.ls9527.adp.annotation.AdpFactory;
 import org.slf4j.Logger;
@@ -11,14 +9,15 @@ import org.springframework.stereotype.Service;
  * @author ls9527
  */
 
-@AdpFactory(name = FactoryConstants.SPARROW)
+@AdpFactory(name = GroupFactoryConstants.SPARROW,group = "groupA")
 @Service
-public class Sparrow implements Bird {
+public class GroupSparrow implements GroupBird {
 
-    private static final Logger logger = LoggerFactory.getLogger(Sparrow.class);
+    private static final Logger logger = LoggerFactory.getLogger(GroupSparrow.class);
 
     @Override
     public void sayHello() {
         logger.info("Sparrow say hello");
     }
+
 }

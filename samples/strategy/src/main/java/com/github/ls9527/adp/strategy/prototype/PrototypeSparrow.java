@@ -1,5 +1,4 @@
-package com.github.ls9527.adp.factory.prototype;
-
+package com.github.ls9527.adp.strategy.prototype;
 
 
 import com.github.ls9527.adp.annotation.AdpFactory;

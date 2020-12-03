@@ -13,22 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ls9527.adp.adp.annotation;
+package com.github.ls9527.adp.factory;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+import com.github.ls9527.adp.context.Factory;
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import java.util.Map;
 
 /**
  * @author ls9527
  */
-@Target({FIELD})
-@Retention(RUNTIME)
-public @interface AdpResource {
-    /**
-     * @return group name
-     */
-    String group() default "";
+class GroupFactory<T> implements Factory<T> {
+    private Map<String, Object> beanMap;
+
+    private GroupFactory(Map<String, Object> beanMap) {
+        this.beanMap = beanMap;
+    }
+
+    static <S> GroupFactory<S> createFactory(Map<String, Object> beanMap) {
+        return new GroupFactory<>(beanMap);
+    }
+
+    @Override
+    public T getBean(String name) {
+        return (T) beanMap.get(name);
+    }
+
 }

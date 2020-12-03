@@ -1,9 +1,9 @@
-package com.github.ls9527.adp.factory;
+package com.github.ls9527.adp.strategy;
 
 import com.github.ls9527.adp.annotation.FactoryResource;
 import com.github.ls9527.adp.context.Factory;
-import com.github.ls9527.adp.factory.group.GroupBird;
-import com.github.ls9527.adp.factory.group.GroupFactoryConstants;
+import com.github.ls9527.adp.strategy.group.GroupBird;
+import com.github.ls9527.adp.strategy.group.GroupFactoryConstants;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -12,7 +12,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(classes = FactoryStarter.class)
+@SpringBootTest(classes = StrategyStarter.class)
 public class GroupFactoryTest {
 
     @FactoryResource(group = "groupA")

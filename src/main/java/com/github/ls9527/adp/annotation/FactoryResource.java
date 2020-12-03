@@ -13,20 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ls9527.adp.adp.context;
+package com.github.ls9527.adp.annotation;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * @author ls9527
  */
-public interface Factory<T> {
-
+@Target({FIELD})
+@Retention(RUNTIME)
+public @interface FactoryResource {
     /**
-     * getBean
-     *
-     * @param beanName beanName
-     * @return the instance of bean
+     * @return group name
      */
-    T getBean(String beanName);
-
+    String group() default "";
 }

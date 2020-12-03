@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  com.github.ls9527.adp.adp.configuration.AdpConfiguration
+  com.github.ls9527.adp.configuration.AdpConfiguration

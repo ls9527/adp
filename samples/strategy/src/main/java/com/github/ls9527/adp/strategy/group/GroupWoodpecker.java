@@ -1,5 +1,4 @@
-package com.github.ls9527.adp.factory.demo;
-
+package com.github.ls9527.adp.strategy.group;
 
 
 import com.github.ls9527.adp.annotation.AdpFactory;
@@ -11,14 +10,15 @@ import org.springframework.stereotype.Service;
 /**
  * @author ls9527
  */
-@AdpFactory(name = FactoryConstants.WOODPECKER)
+@AdpFactory(name = GroupFactoryConstants.WOODPECKER, group = "groupB")
 @Service
-public class Woodpecker implements Bird {
+public class GroupWoodpecker implements GroupBird {
 
-    private static final Logger logger = LoggerFactory.getLogger(Woodpecker.class);
+    private static final Logger logger = LoggerFactory.getLogger(GroupWoodpecker.class);
 
     @Override
     public void sayHello() {
         logger.info("Woodpecker say hello");
     }
+
 }

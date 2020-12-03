@@ -13,10 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ls9527.adp.adp.factory;
+package com.github.ls9527.adp.factory;
 
-import com.github.ls9527.adp.adp.annotation.AdpFactory;
-import com.github.ls9527.adp.adp.annotation.AdpResource;
+import com.github.ls9527.adp.annotation.AdpFactory;
+import com.github.ls9527.adp.annotation.AdpStrategy;
+import com.github.ls9527.adp.annotation.FactoryResource;
+import com.github.ls9527.adp.annotation.StrategyResource;
+import com.github.ls9527.adp.strategy.MethodInfo;
+import com.github.ls9527.adp.strategy.StrategyProxy;
 import org.springframework.aop.TargetSource;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.BeansException;
@@ -38,6 +42,7 @@ import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,11 +53,11 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author ls9527
  */
-public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanPostProcessor, ApplicationContextAware,
+public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostProcessor, ApplicationContextAware,
         BeanClassLoaderAware {
 
     private ApplicationContext applicationContext;
-    private ClassLoader classLoader;
+    private ClassLoader beanClassLoader;
 
 
     @Override
@@ -89,11 +94,20 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
             final List<InjectionMetadata.InjectedElement> currElements = new ArrayList<>();
 
             ReflectionUtils.doWithLocalFields(targetClass, field -> {
-                if (field.isAnnotationPresent(AdpResource.class)) {
+                if (field.isAnnotationPresent(FactoryResource.class)) {
                     if (Modifier.isStatic(field.getModifiers())) {
-                        throw new IllegalStateException("@AdpResource annotation is not supported on static fields");
+                        throw new IllegalStateException("@FactoryResource annotation is not supported on static fields");
                     }
-                    currElements.add(new AdpResourceElement(field));
+                    currElements.add(new FactoryResourceElement(field));
+                }
+            });
+
+            ReflectionUtils.doWithLocalFields(targetClass, field -> {
+                if (field.isAnnotationPresent(StrategyResource.class)) {
+                    if (Modifier.isStatic(field.getModifiers())) {
+                        throw new IllegalStateException("@StrategyResource annotation is not supported on static fields");
+                    }
+                    currElements.add(new StrategyResourceElement(field));
                 }
             });
 
@@ -123,8 +137,7 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
 
     @Override
     public void setBeanClassLoader(ClassLoader classLoader) {
-
-        this.classLoader = classLoader;
+        this.beanClassLoader = classLoader;
     }
 
     /**
@@ -161,33 +174,32 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
             pf.addInterface(interfaceType);
         }
 
-        return pf.getProxy(this.classLoader);
+        return pf.getProxy(this.beanClassLoader);
     }
 
-    private class AdpResourceElement extends InjectionMetadata.InjectedElement {
+    private class FactoryResourceElement extends InjectionMetadata.InjectedElement {
         private final Class<?> interfaceType;
         private String groupName;
 
-        public AdpResourceElement(Field field) {
+        public FactoryResourceElement(Field field) {
             super(field, null);
-            AdpResource adpResource = field.getAnnotation(AdpResource.class);
-            String groupName = null;
-            if (!StringUtils.isEmpty(adpResource.group())) {
-                this.groupName = adpResource.group();
+            FactoryResource factoryResource = field.getAnnotation(FactoryResource.class);
+            if (!StringUtils.isEmpty(factoryResource.group())) {
+                this.groupName = factoryResource.group();
             }
 
             Type type = field.getGenericType();
             if (!(type instanceof ParameterizedType)) {
-                throw new InvalidPropertyException(this.member.getClass(),
-                        this.member.getName(),
-                        "property is not a ParameterizedType, memberName:" + this.member.getName());
+                throw new InvalidPropertyException(field.getClass(),
+                        field.getName(),
+                        "property is not a ParameterizedType, memberName:" + field.getName());
             }
             ParameterizedType genericType = (ParameterizedType) type;
             Type[] actualTypeArguments = genericType.getActualTypeArguments();
             if (actualTypeArguments.length != 1) {
-                throw new InvalidPropertyException(this.member.getClass(),
-                        this.member.getName(),
-                        "property is not a type of class, memberName: " + this.member.getName());
+                throw new InvalidPropertyException(field.getClass(),
+                        field.getName(),
+                        "property is not a type of class, memberName: " + field.getName());
             }
             interfaceType = (Class<?>) actualTypeArguments[0];
             if (!interfaceType.isInterface()) {
@@ -285,7 +297,7 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
 
             CacheKey cacheKey = (CacheKey) o;
 
-            if (this.groupName == null && cacheKey.groupName == null) {
+            if (this.groupName == null) {
                 // ignore null value for groupName
             } else if (!groupName.equals(cacheKey.groupName)) {
                 return false;
@@ -301,4 +313,52 @@ public class FactoryResourceBeanPostProcessor implements InstantiationAwareBeanP
         }
     }
 
+
+    private class StrategyResourceElement extends InjectionMetadata.InjectedElement {
+        List<MethodInfo> methodInfos = new ArrayList<>();
+        Class<?> fieldType = null;
+
+        public StrategyResourceElement(Field field) {
+            super(field, null);
+
+            fieldType = field.getType();
+            if (!fieldType.isInterface()) {
+                throw new RuntimeException("field must be a interface");
+            }
+            String[] beanNamesForType = applicationContext.getBeanNamesForType(fieldType);
+            if (beanNamesForType == null || beanNamesForType.length == 0) {
+                throw new RuntimeException("least a interface ");
+            }
+            for (String beanName : beanNamesForType) {
+                Class<?> beanType = applicationContext.getType(beanName);
+                Object bean = applicationContext.getBean(beanName);
+                ReflectionUtils.doWithMethods(beanType, method -> {
+                    if (method.isAnnotationPresent(AdpStrategy.class)) {
+                        if (Modifier.isStatic(method.getModifiers())) {
+                            throw new IllegalStateException("@AdpStrategy annotation is not supported on static fields");
+                        }
+                        AdpStrategy annotation = method.getAnnotation(AdpStrategy.class);
+                        if (annotation != null) {
+                            MethodInfo methodInfo = new MethodInfo();
+                            methodInfo.setBean(bean);
+                            methodInfo.setBeanType(beanType);
+                            methodInfo.setMethod(method);
+                            methodInfo.setCondition(annotation.condition());
+                            methodInfo.setOrder(annotation.order());
+                            methodInfos.add(methodInfo);
+                        }
+                    }
+                });
+            }
+        }
+
+        @Override
+        protected Object getResourceToInject(Object target, String requestingBeanName) {
+            return Proxy.newProxyInstance(beanClassLoader,
+                    new Class[]{fieldType},
+                    new StrategyProxy(methodInfos));
+        }
+
+
+    }
 }

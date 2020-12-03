@@ -1,7 +1,7 @@
 package com.github.ls9527.adp.factory;
 
-import com.github.ls9527.adp.adp.annotation.AdpResource;
-import com.github.ls9527.adp.adp.context.Factory;
+import com.github.ls9527.adp.annotation.FactoryResource;
+import com.github.ls9527.adp.context.Factory;
 import com.github.ls9527.adp.factory.demo.Bird;
 import com.github.ls9527.adp.factory.demo.FactoryConstants;
 import org.junit.Test;
@@ -14,7 +14,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest(classes = FactoryStarter.class)
 public class FactoryTest {
 
-    @AdpResource
+    @FactoryResource
     private Factory<Bird> factory;
 
     @Test
