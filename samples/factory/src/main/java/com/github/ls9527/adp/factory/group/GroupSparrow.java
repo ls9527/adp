@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
  * @author ls9527
  */
 
-@AdpFactory(name = GroupFactoryConstants.SPARROW,group = "groupA")
+@AdpFactory(name = GroupFactoryConstants.SPARROW, group = "groupA")
 @Service
 public class GroupSparrow implements GroupBird {
 

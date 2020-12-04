@@ -23,7 +23,7 @@ import java.util.Map;
  * @author ls9527
  */
 class GroupFactory<T> implements Factory<T> {
-    private Map<String, Object> beanMap;
+    private final Map<String, Object> beanMap;
 
     private GroupFactory(Map<String, Object> beanMap) {
         this.beanMap = beanMap;

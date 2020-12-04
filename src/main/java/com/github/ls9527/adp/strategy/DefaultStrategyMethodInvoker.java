@@ -17,8 +17,13 @@ package com.github.ls9527.adp.strategy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.expression.BeanExpressionContextAccessor;
+import org.springframework.context.expression.MapAccessor;
 import org.springframework.core.Ordered;
 import org.springframework.expression.Expression;
+import org.springframework.expression.ParserContext;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.ReflectivePropertyAccessor;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import java.lang.reflect.InvocationTargetException;
@@ -30,11 +35,39 @@ import java.util.Map;
 /**
  * @author ls9527
  */
-public class DefaultMethodHandler implements MethodHandler, Ordered {
+public class DefaultStrategyMethodInvoker implements StrategyMethodInvoker, Ordered {
+    private static final StandardEvaluationContext evaluationContext = new StandardEvaluationContext() {
+        {
+            addPropertyAccessor(new MapAccessor());
+            addPropertyAccessor(new BeanExpressionContextAccessor());
+            addPropertyAccessor(new ReflectivePropertyAccessor());
+        }
+    };
+
+
+    private static final ParserContext CONTEXT = new ParserContext() {
+        @Override
+        public boolean isTemplate() {
+            return true;
+        }
+
+        @Override
+        public String getExpressionPrefix() {
+            return "#{";
+        }
+
+        @Override
+        public String getExpressionSuffix() {
+            return "}";
+        }
+    };
+
+    private static final SpelExpressionParser spelExpressionParser = new SpelExpressionParser();
+
+    private static final Logger logger = LoggerFactory.getLogger(DefaultStrategyMethodInvoker.class);
     private Object bean;
     private Method method;
     private int order;
-    private StandardEvaluationContext evaluationContext;
     private Expression expression;
 
     @Override
@@ -42,10 +75,8 @@ public class DefaultMethodHandler implements MethodHandler, Ordered {
         return method.invoke(bean, args);
     }
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultMethodHandler.class);
-
     @Override
-    public boolean match(Object[] args) {
+    public boolean support(Object[] args) {
         Map<String, Object> rootMap = new HashMap<>();
         Parameter[] parameters = method.getParameters();
         for (int i = 0; i < parameters.length; i++) {
@@ -77,20 +108,17 @@ public class DefaultMethodHandler implements MethodHandler, Ordered {
         this.method = method;
     }
 
-    public void setOrder(int order) {
-        this.order = order;
-    }
-
-    public void setEvaluationContext(StandardEvaluationContext evaluationContext) {
-        this.evaluationContext = evaluationContext;
-    }
-
-    public void setExpression(Expression expression) {
-        this.expression = expression;
-    }
 
     @Override
     public int getOrder() {
         return order;
+    }
+
+    public void setOrder(int order) {
+        this.order = order;
+    }
+
+    public void setCondition(String condition) {
+        this.expression = spelExpressionParser.parseExpression(condition, CONTEXT);
     }
 }

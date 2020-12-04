@@ -56,9 +56,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostProcessor, ApplicationContextAware,
         BeanClassLoaderAware {
 
+    /**
+     * cache for inject factory
+     */
+    private final Map<CacheKey, Object> factoryMap = new ConcurrentHashMap<>();
+    private final Map<Class<?>, Object> strategyMap = new ConcurrentHashMap<>();
     private ApplicationContext applicationContext;
     private ClassLoader beanClassLoader;
-
 
     @Override
     public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) throws BeansException {
@@ -80,11 +84,6 @@ public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostP
         }
         return pvs;
     }
-
-    /**
-     * cache for inject factory
-     */
-    private Map<CacheKey, /*Factory*/Object> injectCacheMap = new ConcurrentHashMap<>();
 
     private InjectionMetadata buildResourceMetadata(final Class<?> clazz) {
         List<InjectionMetadata.InjectedElement> elements = new ArrayList<>();
@@ -118,7 +117,6 @@ public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostP
 
         return new InjectionMetadata(clazz, elements);
     }
-
 
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
@@ -177,6 +175,40 @@ public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostP
         return pf.getProxy(this.beanClassLoader);
     }
 
+    /**
+     * factory cache key
+     */
+    private static class CacheKey {
+        private String groupName;
+        private Class<?> interfaceType;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            CacheKey cacheKey = (CacheKey) o;
+
+            if (this.groupName == null) {
+                // ignore null value for groupName
+            } else if (!groupName.equals(cacheKey.groupName)) {
+                return false;
+            }
+            return interfaceType.equals(cacheKey.interfaceType);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = groupName != null ? groupName.hashCode() : 0;
+            result = 31 * result + (interfaceType != null ? interfaceType.hashCode() : 0);
+            return result;
+        }
+    }
+
     private class FactoryResourceElement extends InjectionMetadata.InjectedElement {
         private final Class<?> interfaceType;
         private String groupName;
@@ -211,11 +243,11 @@ public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostP
         @Override
         protected Object getResourceToInject(Object target, String requestingBeanName) {
             CacheKey cacheKey = buildCache(this.interfaceType, this.groupName);
-            Object factory = injectCacheMap.get(cacheKey);
+            Object factory = factoryMap.get(cacheKey);
             if (factory == null) {
                 Map<String, Object> beanMap = determineObjectMap(applicationContext, this.groupName, this.interfaceType);
                 factory = GroupFactory.createFactory(beanMap);
-                injectCacheMap.put(cacheKey, factory);
+                factoryMap.put(cacheKey, factory);
             }
             return factory;
         }
@@ -250,7 +282,7 @@ public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostP
                 }
                 String group = factory.group();
                 Object bean = null;
-                if (beanDefinition.isSingleton()) {
+                if (beanDefinition.isSingleton() && !beanDefinition.isLazyInit()) {
                     bean = applicationContext.getBean(beanName);
                 } else {
                     // prototype, request ,session or other scope
@@ -282,38 +314,6 @@ public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostP
 
     }
 
-    private class CacheKey {
-        private String groupName;
-        private Class<?> interfaceType;
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-
-            CacheKey cacheKey = (CacheKey) o;
-
-            if (this.groupName == null) {
-                // ignore null value for groupName
-            } else if (!groupName.equals(cacheKey.groupName)) {
-                return false;
-            }
-            return interfaceType.equals(cacheKey.interfaceType);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = groupName != null ? groupName.hashCode() : 0;
-            result = 31 * result + (interfaceType != null ? interfaceType.hashCode() : 0);
-            return result;
-        }
-    }
-
-
     private class StrategyResourceElement extends InjectionMetadata.InjectedElement {
         List<MethodInfo> methodInfos = new ArrayList<>();
         Class<?> fieldType = null;
@@ -331,7 +331,10 @@ public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostP
             }
             for (String beanName : beanNamesForType) {
                 Class<?> beanType = applicationContext.getType(beanName);
-                Object bean = applicationContext.getBean(beanName);
+
+                BeanDefinitionRegistry beanDefinitionRegistry = (BeanDefinitionRegistry) applicationContext;
+
+                BeanDefinition beanDefinition = beanDefinitionRegistry.getBeanDefinition(beanName);
                 ReflectionUtils.doWithMethods(beanType, method -> {
                     if (method.isAnnotationPresent(AdpStrategy.class)) {
                         if (Modifier.isStatic(method.getModifiers())) {
@@ -339,6 +342,12 @@ public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostP
                         }
                         AdpStrategy annotation = method.getAnnotation(AdpStrategy.class);
                         if (annotation != null) {
+                            Object bean = null;
+                            if (beanDefinition.isSingleton() && !beanDefinition.isLazyInit()) {
+                                bean = applicationContext.getBean(beanName);
+                            } else {
+                                bean = buildLazyResourceProxy(beanType, beanName);
+                            }
                             MethodInfo methodInfo = new MethodInfo();
                             methodInfo.setBean(bean);
                             methodInfo.setBeanType(beanType);
@@ -352,11 +361,17 @@ public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostP
             }
         }
 
+
         @Override
         protected Object getResourceToInject(Object target, String requestingBeanName) {
-            return Proxy.newProxyInstance(beanClassLoader,
-                    new Class[]{fieldType},
-                    new StrategyProxy(methodInfos));
+            Object bean = strategyMap.get(fieldType);
+            if (bean == null) {
+                bean = Proxy.newProxyInstance(beanClassLoader,
+                        new Class[]{fieldType},
+                        new StrategyProxy(methodInfos));
+                strategyMap.put(fieldType, bean);
+            }
+            return bean;
         }
 
 

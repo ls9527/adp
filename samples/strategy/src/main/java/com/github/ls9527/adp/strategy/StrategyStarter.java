@@ -10,6 +10,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class StrategyStarter {
 
     public static void main(String[] args) throws Exception {
-        SpringApplication.run(StrategyStarter.class,args);
+        SpringApplication.run(StrategyStarter.class, args);
     }
 }

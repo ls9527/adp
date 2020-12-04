@@ -8,5 +8,7 @@ public class FactoryConstants {
 
     public static final String WOODPECKER = "WOODPECKER";
 
+    public static final String EAGLE = "EAGLE";
+
     public static final String GROUP_BIRD = "bird";
 }

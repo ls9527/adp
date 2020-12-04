@@ -10,6 +10,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class FactoryStarter {
 
     public static void main(String[] args) throws Exception {
-        SpringApplication.run(FactoryStarter.class,args);
+        SpringApplication.run(FactoryStarter.class, args);
     }
 }

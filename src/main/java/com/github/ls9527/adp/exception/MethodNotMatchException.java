@@ -13,32 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.ls9527.adp.annotation;
+package com.github.ls9527.adp.exception;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.reflect.Method;
 
 /**
  * @author ls9527
  */
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface AdpFactory {
+public class MethodNotMatchException extends RuntimeException {
+    private Method method;
+    private Object[] args;
 
-    /**
-     * factory name
-     *
-     * @return name
-     */
-    String[] name();
+    public MethodNotMatchException(String message, Method method, Object[] args) {
+        super(message);
+        this.method = method;
+        this.args = args;
+    }
 
-    /**
-     * group name
-     *
-     * @return group name
-     */
-    String group() default "";
+    public Method getMethod() {
+        return method;
+    }
 
+    public void setMethod(Method method) {
+        this.method = method;
+    }
+
+    public Object[] getArgs() {
+        return args;
+    }
+
+    public void setArgs(Object[] args) {
+        this.args = args;
+    }
 }

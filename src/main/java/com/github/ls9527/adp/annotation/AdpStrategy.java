@@ -36,6 +36,7 @@ public @interface AdpStrategy {
 
     /**
      * order
+     *
      * @return order number
      */
     int order() default -1;

@@ -16,19 +16,14 @@
 package com.github.ls9527.adp.strategy;
 
 import com.github.ls9527.adp.annotation.AdpStrategy;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.context.expression.BeanExpressionContextAccessor;
-import org.springframework.context.expression.MapAccessor;
+import com.github.ls9527.adp.exception.MethodNotMatchException;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.expression.Expression;
-import org.springframework.expression.ParserContext;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.ReflectivePropertyAccessor;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.util.ClassUtils;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,95 +34,82 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class StrategyProxy implements InvocationHandler {
 
-
-    public static final ParserContext CONTEXT = new ParserContext() {
-        @Override
-        public boolean isTemplate() {
-            return true;
-        }
-
-        @Override
-        public String getExpressionPrefix() {
-            return "#{";
-        }
-
-        @Override
-        public String getExpressionSuffix() {
-            return "}";
-        }
-    };
-
+    private Map<Method, List<StrategyMethodInvoker>> methodHandlerMap = new ConcurrentHashMap<>();
 
     public StrategyProxy(List<MethodInfo> objectList) {
         for (MethodInfo object : objectList) {
             AdpStrategy annotation = AnnotationUtils.findAnnotation(object.getMethod(), AdpStrategy.class);
             String condition = annotation.condition();
             int order = annotation.order();
-            DefaultMethodHandler defaultMethodHandler = buildDefaultMethodHandler(object, condition, order);
+            StrategyMethodInvoker defaultMethodHandler = buildDefaultMethodHandler(object, condition, order);
             cacheMethod(object, defaultMethodHandler);
         }
     }
 
-    private void cacheMethod(MethodInfo object, DefaultMethodHandler defaultMethodHandler) {
+    private void cacheMethod(MethodInfo object, StrategyMethodInvoker strategyMethodInvoker) {
         Method originMethod = object.getMethod();
         Class<?> currentClass = originMethod.getDeclaringClass();
         for (Class<?> anInterface : currentClass.getInterfaces()) {
             Method mostSpecificMethod = ClassUtils.getMostSpecificMethod(originMethod, anInterface);
-            if(mostSpecificMethod!=null){
-                List<MethodHandler> methodHandlers =
+            if (mostSpecificMethod != null) {
+                List<StrategyMethodInvoker> strategyMethodInvokers =
                         methodHandlerMap.computeIfAbsent(mostSpecificMethod, x -> new ArrayList<>());
-                methodHandlers.add(defaultMethodHandler);
+                strategyMethodInvokers.add(strategyMethodInvoker);
             }
         }
     }
 
-    SpelExpressionParser spelExpressionParser = new SpelExpressionParser();
-    StandardEvaluationContext evaluationContext = new StandardEvaluationContext(){
-        {
-            addPropertyAccessor(new MapAccessor());
-            addPropertyAccessor(new BeanExpressionContextAccessor());
-            addPropertyAccessor(new ReflectivePropertyAccessor());
-        }
-    };
-
-    private DefaultMethodHandler buildDefaultMethodHandler(MethodInfo object, String condition, int order) {
-        DefaultMethodHandler defaultMethodHandler = new DefaultMethodHandler();
+    protected StrategyMethodInvoker buildDefaultMethodHandler(MethodInfo object, String condition, int order) {
+        DefaultStrategyMethodInvoker defaultMethodHandler = new DefaultStrategyMethodInvoker();
         defaultMethodHandler.setBean(object.getBean());
         defaultMethodHandler.setMethod(object.getMethod());
         defaultMethodHandler.setOrder(order);
-
-        Expression expression = spelExpressionParser.parseExpression(condition, CONTEXT);
-
-        defaultMethodHandler.setExpression(expression);
-        defaultMethodHandler.setEvaluationContext(evaluationContext);
+        defaultMethodHandler.setCondition(condition);
         return defaultMethodHandler;
     }
 
-
-    Map<Method, List<MethodHandler>> methodHandlerMap = new ConcurrentHashMap<>();
-
+    private Throwable unwrapThrowable(Throwable wrapped) {
+        Throwable unwrapped = wrapped;
+        while (true) {
+            if (unwrapped instanceof InvocationTargetException) {
+                unwrapped = ((InvocationTargetException) unwrapped).getTargetException();
+            } else if (unwrapped instanceof UndeclaredThrowableException) {
+                unwrapped = ((UndeclaredThrowableException) unwrapped).getUndeclaredThrowable();
+            } else {
+                return unwrapped;
+            }
+        }
+    }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        MethodHandler methodHandler = findHandlerByArgs(method, args);
-        // not match strategy, throw exception, not call
-        if (methodHandler == null) {
-            throw new RuntimeException("not match MethodHandler");
-        }
-        return methodHandler.invoke(args);
-    }
-
-    private MethodHandler findHandlerByArgs(Method method, Object[] args) {
-        List<MethodHandler> methodHandlers = methodHandlerMap.get(method);
-        if (methodHandlers == null) {
-            throw new RuntimeException("not found MethodHandlers");
-        }
-        // order the list
-        for (MethodHandler methodHandler : methodHandlers) {
-            if (methodHandler.match(args)) {
-                return methodHandler;
+        if (Object.class.equals(method.getDeclaringClass())) {
+            try {
+                return method.invoke(this, args);
+            } catch (Throwable e) {
+                throw unwrapThrowable(e);
             }
         }
-        return null;
+        StrategyMethodInvoker strategyMethodInvoker = findHandlerByArgs(method, args);
+        return strategyMethodInvoker.invoke(args);
+    }
+
+    private StrategyMethodInvoker findHandlerByArgs(Method method, Object[] args) {
+        List<StrategyMethodInvoker> strategyMethodInvokers = methodHandlerMap.get(method);
+        StrategyMethodInvoker methodInvoker = null;
+        if (strategyMethodInvokers != null) {
+            // order the list
+            for (StrategyMethodInvoker strategyMethodInvoker : strategyMethodInvokers) {
+                if (strategyMethodInvoker.support(args)) {
+                    methodInvoker = strategyMethodInvoker;
+                    break;
+                }
+            }
+        }
+        // not match strategy, throw exception, not call
+        if (methodInvoker == null) {
+            throw new MethodNotMatchException("not match MethodHandler", method, args);
+        }
+        return methodInvoker;
     }
 }

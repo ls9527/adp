@@ -20,15 +20,22 @@ import java.lang.reflect.InvocationTargetException;
 /**
  * @author ls9527
  */
-public interface MethodHandler {
+public interface StrategyMethodInvoker {
     /**
+     * invoke target method
      *
-     * @param args
-     * @return
+     * @param args args
+     * @return object
      * @throws InvocationTargetException
      * @throws IllegalAccessException
      */
-    public Object invoke(Object[] args) throws InvocationTargetException, IllegalAccessException;
+    Object invoke(Object[] args) throws InvocationTargetException, IllegalAccessException;
 
-    boolean match(Object[] args);
+    /**
+     * is support args for method
+     *
+     * @param args arguments
+     * @return support method
+     */
+    boolean support(Object[] args);
 }

@@ -17,7 +17,7 @@ public class Sparrow implements Bird {
 
     @AdpStrategy(condition = "#{T(com.github.ls9527.adp.strategy.demo.FactoryConstants).SPARROW eq type}")
     @Override
-    public void sayHello(String type, int age) {
+    public void sayHello(String type) {
         logger.info("Sparrow say hello");
     }
 }
