@@ -15,6 +15,7 @@
  */
 package com.github.ls9527.adp.strategy;
 
+import com.github.ls9527.adp.exception.MethodNotMatchException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.expression.BeanExpressionContextAccessor;
@@ -95,7 +96,7 @@ public class DefaultStrategyMethodInvoker implements StrategyMethodInvoker, Orde
             return false;
         }
         if (!(value instanceof Boolean)) {
-            throw new RuntimeException("return type can not cast to boolean");
+            throw new MethodNotMatchException("return type can not cast to boolean", method, args);
         }
         return (Boolean) value;
     }

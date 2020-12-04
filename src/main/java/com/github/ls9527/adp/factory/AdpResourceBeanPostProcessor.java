@@ -19,6 +19,7 @@ import com.github.ls9527.adp.annotation.AdpFactory;
 import com.github.ls9527.adp.annotation.AdpStrategy;
 import com.github.ls9527.adp.annotation.FactoryResource;
 import com.github.ls9527.adp.annotation.StrategyResource;
+import com.github.ls9527.adp.context.Factory;
 import com.github.ls9527.adp.strategy.MethodInfo;
 import com.github.ls9527.adp.strategy.StrategyProxy;
 import org.springframework.aop.TargetSource;
@@ -45,6 +46,8 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -323,11 +326,11 @@ public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostP
 
             fieldType = field.getType();
             if (!fieldType.isInterface()) {
-                throw new RuntimeException("field must be a interface");
+                throw new IllegalArgumentException("field must be a interface, fieldName:" + field.getName());
             }
             String[] beanNamesForType = applicationContext.getBeanNamesForType(fieldType);
             if (beanNamesForType == null || beanNamesForType.length == 0) {
-                throw new RuntimeException("least a interface ");
+                throw new IllegalArgumentException("the spring container must have least a instance , type:" + fieldType.getName());
             }
             for (String beanName : beanNamesForType) {
                 Class<?> beanType = applicationContext.getType(beanName);
@@ -358,6 +361,7 @@ public class AdpResourceBeanPostProcessor implements InstantiationAwareBeanPostP
                         }
                     }
                 });
+                methodInfos.sort(Comparator.comparingInt(MethodInfo::getOrder));
             }
         }
 

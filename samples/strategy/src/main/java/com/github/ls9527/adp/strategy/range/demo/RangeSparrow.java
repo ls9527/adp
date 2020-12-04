@@ -15,7 +15,7 @@ public class RangeSparrow implements RangeBird {
 
     private static final Logger logger = LoggerFactory.getLogger(RangeSparrow.class);
 
-    @AdpStrategy(condition = "#{age > 0 and age < 20}")
+    @AdpStrategy(condition = "#{age > 0 and age < 20}",order = 0)
     @Override
     public void sayHello(int age) {
         logger.info("Sparrow say hello");

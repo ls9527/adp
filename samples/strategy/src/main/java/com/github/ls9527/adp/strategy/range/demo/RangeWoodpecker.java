@@ -15,7 +15,7 @@ public class RangeWoodpecker implements RangeBird {
 
     private static final Logger logger = LoggerFactory.getLogger(RangeWoodpecker.class);
 
-    @AdpStrategy(condition = "#{age >=20}")
+    @AdpStrategy(condition = "#{age >= 20}", order = 1)
     @Override
     public void sayHello(int age) {
         logger.info("Woodpecker say hello");
